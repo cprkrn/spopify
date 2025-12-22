@@ -77,13 +77,13 @@ SPOTIPY_REDIRECT_URI=http://127.0.0.1:8888/callback
 ### Basic Usage
 
 ```bash
-python soundcloud_to_spotify.py "https://soundcloud.com/artist/mix-name"
+python3 soundcloud_to_spotify.py "https://soundcloud.com/artist/mix-name"
 ```
 
 ### With Custom Playlist Name
 
 ```bash
-python soundcloud_to_spotify.py "https://soundcloud.com/artist/mix-name" \
+python3 soundcloud_to_spotify.py "https://soundcloud.com/artist/mix-name" \
     --name "My Awesome Mix" \
     --description "Tracks from my favorite DJ set"
 ```
@@ -92,13 +92,38 @@ python soundcloud_to_spotify.py "https://soundcloud.com/artist/mix-name" \
 
 For longer tracks (like techno), increase segment step:
 ```bash
-python soundcloud_to_spotify.py URL --segment-step 60
+python3 soundcloud_to_spotify.py URL --segment-step 60
 ```
 
 For denser mixes with quick transitions:
 ```bash
-python soundcloud_to_spotify.py URL --segment-step 30
+python3 soundcloud_to_spotify.py URL --segment-step 30
 ```
+
+### Save & Load Track Lists
+
+Analyzing long mixes takes time. Save your results to skip re-analysis:
+
+```bash
+# Save identified tracks to a file
+python3 soundcloud_to_spotify.py "URL" --save-tracks tracklists/my_mix.json --name "My Mix"
+
+# Load previously identified tracks (skips Shazam analysis!)
+python3 soundcloud_to_spotify.py "URL" --load-tracks tracklists/my_mix.json --name "My Mix"
+```
+
+### Analyze Only (No Spotify)
+
+Just identify tracks without creating a playlist:
+
+```bash
+python3 soundcloud_to_spotify.py "URL" --analyze-only --save-tracks tracklists/my_mix.json
+```
+
+This is useful when:
+- You don't have Spotify credentials yet
+- Spotify API is having issues
+- You just want to see what tracks are in a mix
 
 ### All Options
 
@@ -113,6 +138,9 @@ options:
   --segment-duration    Duration of each segment to analyze (default: 20s)
   --segment-step        Time between segment starts (default: 45s)
   --quiet, -q           Suppress progress output
+  --save-tracks, -s     Save identified tracks to a JSON file
+  --load-tracks, -l     Load tracks from a JSON file (skip analysis)
+  --analyze-only        Only analyze, don't create Spotify playlist
 ```
 
 ## First Run
@@ -187,6 +215,65 @@ sudo apt install ffmpeg
 ### Python 3.13 "No module named 'audioop'"
 ```bash
 pip install audioop-lts
+```
+
+## Creating TikTok/Reels Videos
+
+Want to make a video explaining this tool? We've got you covered! All TikTok-related files are in the `tiktok/` folder.
+
+### Option 1: Python Script (Fancy animated slides)
+
+```bash
+# Install moviepy (if not already)
+pip install moviepy
+
+# Generate the video
+python3 tiktok/create_tiktok.py
+
+# Or include your own screen recording
+python3 tiktok/create_tiktok.py --recording ss/spopify.mp4 --output tiktok/my_video.mp4
+```
+
+This creates a vertical 1080x1920 video with:
+- Animated text slides
+- Code snippets
+- Tech stack overview
+- Optional screen recording integration
+
+### Option 2: Shell Script (Simple FFmpeg version)
+
+```bash
+./tiktok/create_tiktok_simple.sh tiktok/output.mp4
+```
+
+### Tips for TikTok Success
+
+1. **Add trending audio** - Upload to TikTok/CapCut and add a trending sound
+2. **Hook in first 3 seconds** - The video starts with the hook
+3. **Hashtags**: `#coding #python #spotify #soundcloud #developer #programming #tech`
+4. **Best times to post**: 7am, 12pm, 3pm, 7pm (your timezone)
+
+### Using Your Screen Recordings
+
+The `ss/` folder contains screen recordings you can include:
+```bash
+python3 tiktok/create_tiktok.py --recording "ss/Screen Recording 2025-12-22 at 11.26.28 AM.mov"
+```
+
+## Project Structure
+
+```
+scf/
+├── soundcloud_to_spotify.py  # Main script
+├── tracklists/               # Saved track lists (JSON)
+│   └── bobby_tracks.json     # Example: Bobby @ Houghton 2023
+├── tiktok/                   # TikTok video generator
+│   ├── create_tiktok.py
+│   └── create_tiktok_simple.sh
+├── ss/                       # Screenshots & screen recordings
+├── video/                    # VHS demo recordings
+├── requirements.txt
+└── .env                      # Your Spotify credentials (not in git)
 ```
 
 ## License

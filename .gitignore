@@ -28,3 +28,4 @@ video/
 *.mov
 *.gif
 
+.DS_Store

@@ -14,8 +14,9 @@ import sys
 import argparse
 import tempfile
 import subprocess
+import json
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -35,6 +36,33 @@ class IdentifiedTrack:
     timestamp_seconds: int
     shazam_id: Optional[str] = None
     spotify_uri: Optional[str] = None
+    
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization."""
+        return asdict(self)
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> "IdentifiedTrack":
+        """Create from dictionary."""
+        return cls(**data)
+
+
+def save_tracks(tracks: list[IdentifiedTrack], filepath: str, url: str = "") -> None:
+    """Save identified tracks to a JSON file."""
+    data = {
+        "source_url": url,
+        "track_count": len(tracks),
+        "tracks": [t.to_dict() for t in tracks]
+    }
+    with open(filepath, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def load_tracks(filepath: str) -> list[IdentifiedTrack]:
+    """Load identified tracks from a JSON file."""
+    with open(filepath, "r") as f:
+        data = json.load(f)
+    return [IdentifiedTrack.from_dict(t) for t in data["tracks"]]
 
 
 class SoundCloudToSpotify:
@@ -287,31 +315,54 @@ class SoundCloudToSpotify:
         self,
         soundcloud_url: str,
         playlist_name: Optional[str] = None,
-        playlist_description: str = ""
+        playlist_description: str = "",
+        load_tracks_file: Optional[str] = None,
+        save_tracks_file: Optional[str] = None
     ) -> str:
         """
         Main conversion method. Downloads, identifies, and creates playlist.
         
+        Args:
+            soundcloud_url: URL of the SoundCloud mix
+            playlist_name: Name for the Spotify playlist
+            playlist_description: Description for the playlist
+            load_tracks_file: Path to load previously identified tracks from (skips analysis)
+            save_tracks_file: Path to save identified tracks to
+        
         Returns the Spotify playlist URL.
         """
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            # Download audio
-            audio_path = self.download_audio(soundcloud_url, tmp_dir)
-            
-            # Identify tracks
-            tracks = await self.identify_tracks(audio_path)
-            
-            if not tracks:
-                raise RuntimeError("No tracks were identified in the audio")
-            
-            # Create playlist
-            if not playlist_name:
-                playlist_name = f"SoundCloud Mix ({len(tracks)} tracks)"
-            
-            # Add prefix for easy grouping
-            playlist_name = f"[SCF] {playlist_name}"
-            
-            return self.create_spotify_playlist(tracks, playlist_name, playlist_description)
+        tracks: list[IdentifiedTrack] = []
+        
+        # Load tracks from file if provided
+        if load_tracks_file and os.path.exists(load_tracks_file):
+            self.log(f"📂 Loading tracks from: {load_tracks_file}")
+            tracks = load_tracks(load_tracks_file)
+            self.log(f"✅ Loaded {len(tracks)} tracks from file")
+        else:
+            # Download and analyze
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                # Download audio
+                audio_path = self.download_audio(soundcloud_url, tmp_dir)
+                
+                # Identify tracks
+                tracks = await self.identify_tracks(audio_path)
+                
+                if not tracks:
+                    raise RuntimeError("No tracks were identified in the audio")
+                
+                # Save tracks if requested
+                if save_tracks_file:
+                    save_tracks(tracks, save_tracks_file, soundcloud_url)
+                    self.log(f"💾 Saved {len(tracks)} tracks to: {save_tracks_file}")
+        
+        # Create playlist
+        if not playlist_name:
+            playlist_name = f"SoundCloud Mix ({len(tracks)} tracks)"
+        
+        # Add prefix for easy grouping
+        playlist_name = f"[SCF] {playlist_name}"
+        
+        return self.create_spotify_playlist(tracks, playlist_name, playlist_description)
 
 
 async def main():
@@ -323,6 +374,12 @@ Examples:
   %(prog)s https://soundcloud.com/artist/mix-name
   %(prog)s https://soundcloud.com/artist/mix-name --name "My Playlist"
   %(prog)s https://soundcloud.com/artist/mix-name --segment-duration 15 --segment-step 20
+  
+  # Save identified tracks to reuse later:
+  %(prog)s https://soundcloud.com/artist/mix-name --save-tracks mix_tracks.json
+  
+  # Load previously identified tracks (skip Shazam analysis):
+  %(prog)s https://soundcloud.com/artist/mix-name --load-tracks mix_tracks.json --name "My Playlist"
 
 Environment variables required:
   SPOTIPY_CLIENT_ID     - Your Spotify app client ID
@@ -363,29 +420,188 @@ Environment variables required:
         action="store_true",
         help="Suppress progress output"
     )
+    parser.add_argument(
+        "--save-tracks", "-s",
+        dest="save_tracks_file",
+        help="Save identified tracks to a JSON file (for reuse later)"
+    )
+    parser.add_argument(
+        "--load-tracks", "-l",
+        dest="load_tracks_file",
+        help="Load tracks from a JSON file (skip Shazam analysis)"
+    )
+    parser.add_argument(
+        "--analyze-only",
+        action="store_true",
+        help="Only analyze and save tracks, don't create Spotify playlist"
+    )
     
     args = parser.parse_args()
     
-    # Check for required environment variables
-    if not os.getenv("SPOTIPY_CLIENT_ID") or not os.getenv("SPOTIPY_CLIENT_SECRET"):
-        print("❌ Error: Missing Spotify API credentials!")
-        print("   Please set SPOTIPY_CLIENT_ID and SPOTIPY_CLIENT_SECRET environment variables.")
-        print("   You can get these from https://developer.spotify.com/dashboard")
-        sys.exit(1)
-    
-    converter = SoundCloudToSpotify(
-        segment_duration_sec=args.segment_duration,
-        segment_step_sec=args.segment_step,
-        verbose=not args.quiet
-    )
+    # Check for analyze-only requirements
+    if args.analyze_only:
+        if not args.save_tracks_file:
+            print("❌ Error: --analyze-only requires --save-tracks to specify output file")
+            sys.exit(1)
+    else:
+        # Check for required environment variables (only needed for Spotify)
+        if not os.getenv("SPOTIPY_CLIENT_ID") or not os.getenv("SPOTIPY_CLIENT_SECRET"):
+            print("❌ Error: Missing Spotify API credentials!")
+            print("   Please set SPOTIPY_CLIENT_ID and SPOTIPY_CLIENT_SECRET environment variables.")
+            print("   You can get these from https://developer.spotify.com/dashboard")
+            print("   (Or use --analyze-only to just identify tracks without creating a playlist)")
+            sys.exit(1)
     
     try:
-        playlist_url = await converter.convert(
-            soundcloud_url=args.url,
-            playlist_name=args.playlist_name,
-            playlist_description=args.playlist_description
-        )
-        print(f"\n🎉 Done! Playlist: {playlist_url}")
+        if args.analyze_only:
+            # Analyze-only mode: just identify tracks and save to file
+            verbose = not args.quiet
+            
+            if verbose:
+                print(f"🔍 Analyze-only mode: will save tracks to {args.save_tracks_file}")
+            
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                # Download audio
+                if verbose:
+                    print(f"📥 Downloading audio from: {args.url}")
+                
+                output_template = os.path.join(tmp_dir, "audio.%(ext)s")
+                cmd = [
+                    "yt-dlp",
+                    "--extract-audio",
+                    "--audio-format", "mp3",
+                    "--audio-quality", "0",
+                    "-o", output_template,
+                    args.url
+                ]
+                subprocess.run(cmd, check=True, capture_output=True, text=True)
+                
+                # Find the downloaded file
+                audio_path = None
+                for ext in ["mp3", "m4a", "wav", "ogg"]:
+                    path = os.path.join(tmp_dir, f"audio.{ext}")
+                    if os.path.exists(path):
+                        audio_path = path
+                        break
+                
+                if not audio_path:
+                    raise RuntimeError("Downloaded file not found")
+                
+                if verbose:
+                    print(f"✅ Downloaded: {audio_path}")
+                
+                # Create a minimal converter just for analysis (no Spotify init)
+                from pydub import AudioSegment
+                from shazamio import Shazam
+                
+                segment_duration = args.segment_duration * 1000
+                segment_step = args.segment_step * 1000
+                
+                if verbose:
+                    print(f"🎵 Loading audio file: {audio_path}")
+                
+                audio = AudioSegment.from_file(audio_path)
+                duration_ms = len(audio)
+                duration_sec = duration_ms // 1000
+                
+                if verbose:
+                    print(f"⏱️  Duration: {duration_sec // 60}m {duration_sec % 60}s")
+                    print(f"🔍 Analyzing segments (every {segment_step // 1000}s)...")
+                
+                identified_tracks: list[IdentifiedTrack] = []
+                seen_tracks: set[tuple[str, str]] = set()
+                
+                position = 0
+                request_count = 0
+                while position + segment_duration <= duration_ms:
+                    timestamp_sec = position // 1000
+                    progress_pct = (position / duration_ms) * 100
+                    
+                    if verbose:
+                        print(f"   [{progress_pct:5.1f}%] Analyzing at {timestamp_sec // 60}:{timestamp_sec % 60:02d}...")
+                    
+                    request_count += 1
+                    if request_count > 1:
+                        await asyncio.sleep(2)
+                    
+                    segment = audio[position:position + segment_duration]
+                    
+                    # Export and identify
+                    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+                        segment.export(tmp.name, format="mp3", bitrate="128k")
+                        tmp_path = tmp.name
+                    
+                    try:
+                        for attempt in range(3):
+                            try:
+                                shazam = Shazam()
+                                result = await asyncio.wait_for(
+                                    shazam.recognize(tmp_path),
+                                    timeout=15.0
+                                )
+                                
+                                if result and "track" in result:
+                                    track_data = result["track"]
+                                    track = IdentifiedTrack(
+                                        title=track_data.get("title", "Unknown"),
+                                        artist=track_data.get("subtitle", "Unknown"),
+                                        timestamp_seconds=timestamp_sec,
+                                        shazam_id=track_data.get("key")
+                                    )
+                                    track_key = (track.title.lower(), track.artist.lower())
+                                    if track_key not in seen_tracks:
+                                        seen_tracks.add(track_key)
+                                        identified_tracks.append(track)
+                                        if verbose:
+                                            print(f"   ✅ Found: {track.artist} - {track.title}")
+                                    else:
+                                        if verbose:
+                                            print(f"   ⏭️  Already found: {track.artist} - {track.title}")
+                                else:
+                                    if verbose:
+                                        print(f"   ❌ No match")
+                                break
+                                
+                            except asyncio.TimeoutError:
+                                if attempt < 2:
+                                    if verbose:
+                                        print(f"   ⏳ Retry {attempt + 1}/2 at {timestamp_sec}s...")
+                                    await asyncio.sleep(3)
+                                else:
+                                    if verbose:
+                                        print(f"   ⚠️  Timeout at {timestamp_sec}s")
+                                        print(f"   ❌ No match")
+                    finally:
+                        os.unlink(tmp_path)
+                    
+                    position += segment_step
+                
+                if verbose:
+                    print(f"\n🎉 Identified {len(identified_tracks)} unique tracks!")
+                
+                # Save tracks
+                save_tracks(identified_tracks, args.save_tracks_file, args.url)
+                print(f"\n💾 Saved {len(identified_tracks)} tracks to: {args.save_tracks_file}")
+                print(f"\n✅ Done! To create a Spotify playlist, run:")
+                print(f"   python soundcloud_to_spotify.py \"{args.url}\" --load-tracks {args.save_tracks_file} --name \"Your Playlist\"")
+        
+        else:
+            # Normal mode: full conversion
+            converter = SoundCloudToSpotify(
+                segment_duration_sec=args.segment_duration,
+                segment_step_sec=args.segment_step,
+                verbose=not args.quiet
+            )
+            
+            playlist_url = await converter.convert(
+                soundcloud_url=args.url,
+                playlist_name=args.playlist_name,
+                playlist_description=args.playlist_description,
+                load_tracks_file=args.load_tracks_file,
+                save_tracks_file=args.save_tracks_file
+            )
+            print(f"\n🎉 Done! Playlist: {playlist_url}")
+    
     except Exception as e:
         print(f"\n❌ Error: {e}")
         sys.exit(1)
