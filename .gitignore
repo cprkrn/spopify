@@ -22,3 +22,9 @@ env/
 *.temp
 audio/
 
+# Video creation
+video/
+*.mp4
+*.mov
+*.gif
+
