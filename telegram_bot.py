@@ -190,8 +190,13 @@ async def download_audio(url: str, output_dir: str) -> str:
     """Download audio from SoundCloud."""
     output_template = os.path.join(output_dir, "audio.%(ext)s")
     
+    # Use yt-dlp from venv or system
+    script_dir = Path(__file__).parent
+    venv_ytdlp = script_dir / "venv" / "bin" / "yt-dlp"
+    ytdlp_cmd = str(venv_ytdlp) if venv_ytdlp.exists() else "yt-dlp"
+    
     cmd = [
-        "yt-dlp",
+        ytdlp_cmd,
         "--extract-audio",
         "--audio-format", "mp3",
         "--audio-quality", "0",
