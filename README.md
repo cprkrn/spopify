@@ -217,6 +217,68 @@ sudo apt install ffmpeg
 pip install audioop-lts
 ```
 
+## Telegram Bot
+
+Share the tool with friends using the Telegram bot! They just send a SoundCloud URL and get a Spotify playlist back.
+
+### Setup
+
+1. **Create a bot** - Message [@BotFather](https://t.me/BotFather) on Telegram:
+   ```
+   /newbot
+   ```
+   Follow the prompts and save the token.
+
+2. **Add token to .env**:
+   ```
+   TELEGRAM_BOT_TOKEN=your_token_here
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   pip install python-telegram-bot
+   ```
+
+4. **Run the bot**:
+   ```bash
+   python3 telegram_bot.py
+   ```
+
+### How It Works
+
+```
+Friend: https://soundcloud.com/dj/amazing-mix
+
+Bot: 🎵 Got it! Processing your SoundCloud mix...
+     📥 Downloading audio...
+
+Bot: ✅ Downloaded! Starting analysis...
+     ⏱️ Duration: 60m 0s
+     🔍 Analyzing... (this may take 5 minutes)
+
+Bot: 📊 Progress: 40% (12 tracks found)
+
+Bot: 🎉 Found 28 tracks!
+     🎧 Creating Spotify playlist...
+
+Bot: ✅ Playlist created!
+     🎧 https://open.spotify.com/playlist/...
+     
+     📊 Stats:
+       • Tracks found: 28
+       • Added to Spotify: 25
+       • Not on Spotify: 3
+```
+
+### Running 24/7
+
+To keep the bot running, you can:
+- Use `screen` or `tmux`: `screen -S scfbot python3 telegram_bot.py`
+- Deploy to a VPS (DigitalOcean, AWS, etc.)
+- Use a service like Railway or Fly.io
+
+---
+
 ## Creating TikTok/Reels Videos
 
 Want to make a video explaining this tool? We've got you covered! All TikTok-related files are in the `tiktok/` folder.
@@ -264,7 +326,8 @@ python3 tiktok/create_tiktok.py --recording "ss/Screen Recording 2025-12-22 at 1
 
 ```
 scf/
-├── soundcloud_to_spotify.py  # Main script
+├── soundcloud_to_spotify.py  # Main CLI script
+├── telegram_bot.py           # Telegram bot for sharing with friends
 ├── tracklists/               # Saved track lists (JSON)
 │   └── bobby_tracks.json     # Example: Bobby @ Houghton 2023
 ├── tiktok/                   # TikTok video generator
@@ -273,7 +336,7 @@ scf/
 ├── ss/                       # Screenshots & screen recordings
 ├── video/                    # VHS demo recordings
 ├── requirements.txt
-└── .env                      # Your Spotify credentials (not in git)
+└── .env                      # Your credentials (not in git)
 ```
 
 ## License

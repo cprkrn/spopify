@@ -9,3 +9,6 @@ audioop-lts>=0.2.1;python_version>="3.13"
 # Optional: For TikTok video generation
 moviepy>=1.0.3
 
+# Optional: For Telegram bot
+python-telegram-bot>=21.0
+
