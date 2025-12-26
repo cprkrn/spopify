@@ -29,3 +29,5 @@ video/
 *.gif
 
 .DS_Store
+*.key
+*.key.pub
