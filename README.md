@@ -283,9 +283,28 @@ To keep the bot running, you can:
 scf/
 ├── soundcloud_to_spotify.py  # Main CLI script
 ├── telegram_bot.py           # Telegram bot for sharing with friends
+├── common_likes/             # Find tracks liked by multiple artists
+│   ├── common_likes.py       # CLI tool
+│   └── create_soundcloud_playlist.py  # Create SC playlists
 ├── tracklists/               # Saved track lists (JSON)
 ├── requirements.txt
 └── .env                      # Your credentials (not in git)
+```
+
+## Common Likes Tool
+
+Find tracks that multiple SoundCloud artists have liked in common:
+
+```bash
+# Find common likes between artists
+./venv/bin/python3 common_likes/common_likes.py janefitz bobbypleasureclub chezdemilo
+
+# Save results and create Spotify playlist
+./venv/bin/python3 common_likes/common_likes.py janefitz bobbypleasureclub chezdemilo \
+  --save-json results.json --name "Common Vibes"
+
+# Just analyze, no Spotify playlist
+./venv/bin/python3 common_likes/common_likes.py janefitz bobbypleasureclub chezdemilo --no-spotify
 ```
 
 ## License
