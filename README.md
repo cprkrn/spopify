@@ -277,51 +277,6 @@ To keep the bot running, you can:
 - Deploy to a VPS (DigitalOcean, AWS, etc.)
 - Use a service like Railway or Fly.io
 
----
-
-## Creating TikTok/Reels Videos
-
-Want to make a video explaining this tool? We've got you covered! All TikTok-related files are in the `tiktok/` folder.
-
-### Option 1: Python Script (Fancy animated slides)
-
-```bash
-# Install moviepy (if not already)
-pip install moviepy
-
-# Generate the video
-python3 tiktok/create_tiktok.py
-
-# Or include your own screen recording
-python3 tiktok/create_tiktok.py --recording ss/spopify.mp4 --output tiktok/my_video.mp4
-```
-
-This creates a vertical 1080x1920 video with:
-- Animated text slides
-- Code snippets
-- Tech stack overview
-- Optional screen recording integration
-
-### Option 2: Shell Script (Simple FFmpeg version)
-
-```bash
-./tiktok/create_tiktok_simple.sh tiktok/output.mp4
-```
-
-### Tips for TikTok Success
-
-1. **Add trending audio** - Upload to TikTok/CapCut and add a trending sound
-2. **Hook in first 3 seconds** - The video starts with the hook
-3. **Hashtags**: `#coding #python #spotify #soundcloud #developer #programming #tech`
-4. **Best times to post**: 7am, 12pm, 3pm, 7pm (your timezone)
-
-### Using Your Screen Recordings
-
-The `ss/` folder contains screen recordings you can include:
-```bash
-python3 tiktok/create_tiktok.py --recording "ss/Screen Recording 2025-12-22 at 11.26.28 AM.mov"
-```
-
 ## Project Structure
 
 ```
@@ -329,12 +284,6 @@ scf/
 ├── soundcloud_to_spotify.py  # Main CLI script
 ├── telegram_bot.py           # Telegram bot for sharing with friends
 ├── tracklists/               # Saved track lists (JSON)
-│   └── bobby_tracks.json     # Example: Bobby @ Houghton 2023
-├── tiktok/                   # TikTok video generator
-│   ├── create_tiktok.py
-│   └── create_tiktok_simple.sh
-├── ss/                       # Screenshots & screen recordings
-├── video/                    # VHS demo recordings
 ├── requirements.txt
 └── .env                      # Your credentials (not in git)
 ```
