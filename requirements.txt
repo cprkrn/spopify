@@ -9,3 +9,4 @@ audioop-lts>=0.2.1;python_version>="3.13"
 # Optional: For Telegram bot
 python-telegram-bot>=21.0
 
+soundcloud-v2>=1.6.0
