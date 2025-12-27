@@ -25,6 +25,13 @@ Find tracks that multiple SoundCloud artists have liked in common.
 ./venv/bin/python3 common_likes/common_likes.py janefitz bobbypleasureclub chezdemilo
 ```
 
+### 4. Discogs to Spotify (`discogs_finder/`)
+Scrape a Discogs seller's inventory and create a Spotify playlist from matching releases.
+
+```bash
+./venv/bin/python3 discogs_finder/discogs_to_spotify.py "https://www.discogs.com/seller/houseofdog/profile" --name "House of Dog Records"
+```
+
 ---
 
 ## Installation
@@ -77,6 +84,8 @@ scf/
 ├── common_likes/               # Find common likes between artists
 │   ├── common_likes.py
 │   └── create_soundcloud_playlist.py
+├── discogs_finder/             # Discogs → Spotify finder
+│   └── discogs_to_spotify.py
 ├── tracklists/                 # Saved track lists (JSON)
 ├── requirements.txt
 └── .env                        # Your credentials (not in git)
