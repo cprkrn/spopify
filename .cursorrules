@@ -1,0 +1,37 @@
+# Project Rules for SoundCloud/Spotify Toolkit
+
+## Project Structure
+- Each new feature/tool should go in its own subfolder
+- Keep the root directory clean - only config files and README
+- Example structure:
+  ```
+  feature_name/
+  ├── main_script.py
+  ├── helpers.py (if needed)
+  └── README.md (optional, for complex features)
+  ```
+
+## Naming Conventions
+- Folder names: lowercase with underscores (e.g., `common_likes/`)
+- Python files: lowercase with underscores (e.g., `soundcloud_to_spotify.py`)
+- Use descriptive names that explain what the tool does
+
+## Code Style
+- Use Python 3.10+ features (type hints, dataclasses, etc.)
+- Use async/await for I/O operations
+- Include docstrings for modules, classes, and functions
+- Use emoji in CLI output for better UX (📥 ✅ ❌ 🎵 etc.)
+
+## Dependencies
+- Add new dependencies to `requirements.txt`
+- Use optional dependency comments (e.g., `# Optional: For feature X`)
+
+## Environment Variables
+- Add new env vars to `env.example`
+- Load from `.env` using python-dotenv
+
+## Git
+- Commit after completing each feature
+- Use descriptive commit messages
+- Push to GitHub after major changes
+
